@@ -1,0 +1,69 @@
+ {% extends 'base.html' %} {% load static %} 
+{% block title %} 
+Ticket Digital
+ {%endblock %}
+ {% block content %}
+
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <img
+      src="{% static 'ifam_humaita_logo_inicio.png' %}"
+      alt="Logo IFAM"
+      class="img-fluid mb-3"
+      style="max-width: 250px"
+    />
+
+    <p class="lead">Sistema de Controle de Refeições</p>
+  </div>
+
+  <div class="row g-4">
+    <!-- Importação -->
+    <div class="col-lg-4">
+      <div class="card shadow h-100">
+        <div class="card-body text-center">
+          <div class="display-4 mb-3">📂</div>
+
+          <h4>Importar CSV</h4>
+
+          <p>Importe os alunos através de um arquivo CSV.</p>
+
+          <a href="{% url 'importar_csv' %}" class="btn btn-primary">
+            Acessar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leitor -->
+    <div class="col-lg-4">
+      <div class="card shadow h-100">
+        <div class="card-body text-center">
+          <div class="display-4 mb-3">📱</div>
+
+          <h4>Leitor QR Code</h4>
+
+          <p>Registrar automaticamente a retirada da refeição.</p>
+
+          <a href="{% url 'leitor' %}" class="btn btn-success"> Acessar </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relatório -->
+    <div class="col-lg-4">
+      <div class="card shadow h-100">
+        <div class="card-body text-center">
+          <div class="display-4 mb-3">📊</div>
+
+          <h4>Relatórios</h4>
+
+          <p>Exportar os registros para CSV.</p>
+
+          <a href="{% url 'relatorio' %}" class="btn btn-warning"> Acessar </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
