@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Leitor de Tickets{% endblock %}
+{% block title %}Leitor de Embarque{% endblock %}
 
 {% block content %}
 
@@ -14,7 +14,7 @@
 
                 <div class="card-header bg-success text-white text-center">
 
-                    <h2>Leitor de Ticket Digital</h2>
+                    <h2>Leitor de Embarque no Ônibus</h2>
 
                 </div>
 
@@ -58,6 +58,10 @@
 
             {% if nome %}
                 <h3>{{ nome }}</h3>
+            {% endif %}
+
+            {% if rota_nome %}
+                <h5 class="text-muted">Rota: {{ rota_nome }}</h5>
             {% endif %}
 
             <h2>{{ mensagem }}</h2>

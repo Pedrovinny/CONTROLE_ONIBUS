@@ -1,6 +1,6 @@
- {% extends 'base.html' %} {% load static %} 
+{% extends 'base.html' %} {% load static %} 
 {% block title %} 
-Ticket Digital
+Controle de Ônibus
  {%endblock %}
  {% block content %}
 
@@ -13,7 +13,7 @@ Ticket Digital
       style="max-width: 250px"
     />
 
-    <p class="lead">Sistema de Controle de Refeições</p>
+    <p class="lead">Sistema de Controle de Embarque em Ônibus</p>
   </div>
 
   <div class="row g-4">
@@ -25,7 +25,7 @@ Ticket Digital
 
           <h4>Importar CSV</h4>
 
-          <p>Importe os alunos através de um arquivo CSV.</p>
+          <p>Importe os passageiros através de um arquivo CSV.</p>
 
           <a href="{% url 'importar_csv' %}" class="btn btn-primary">
             Acessar
@@ -38,11 +38,11 @@ Ticket Digital
     <div class="col-lg-4">
       <div class="card shadow h-100">
         <div class="card-body text-center">
-          <div class="display-4 mb-3">📱</div>
+          <div class="display-4 mb-3">🚌</div>
 
-          <h4>Leitor QR Code</h4>
+          <h4>Leitor de Embarque</h4>
 
-          <p>Registrar automaticamente a retirada da refeição.</p>
+          <p>Registrar automaticamente a entrada no ônibus.</p>
 
           <a href="{% url 'leitor' %}" class="btn btn-success"> Acessar </a>
         </div>
@@ -57,7 +57,7 @@ Ticket Digital
 
           <h4>Relatórios</h4>
 
-          <p>Exportar os registros para CSV.</p>
+          <p>Exportar os embarques da rota em PDF.</p>
 
           <a href="{% url 'relatorio' %}" class="btn btn-warning"> Acessar </a>
         </div>
