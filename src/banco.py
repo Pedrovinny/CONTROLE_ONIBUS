@@ -1,3 +1,19 @@
+"""
+src/banco.py
+------------
+Camada de acesso ao banco de dados SQLite do sistema de controle de embarque.
+
+Responsabilidades:
+- Criar e manter o schema das tabelas (rotas, passageiros, embarques)
+- Fornecer funções CRUD para cada entidade
+- Encapsular toda lógica SQL, mantendo as views livres de queries diretas
+
+Schema resumido:
+    rotas       (id_rota, nome UNIQUE, descricao)
+    passageiros (id_passageiro, matricula UNIQUE, nome, rota_id FK, ativo)
+    embarques   (id_embarque, passageiro_id FK, data DATE, hora TIME)
+"""
+
 import sqlite3
 from pathlib import Path
 from datetime import datetime
@@ -7,12 +23,16 @@ from datetime import datetime
 # ======================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# O banco fica em <raiz_do_projeto>/dados/banco_onibus.db
 CAMINHO_BANCO = BASE_DIR / "dados" / "banco_onibus.db"
 
+# Garante que a pasta 'dados/' existe antes de qualquer operação
 CAMINHO_BANCO.parent.mkdir(exist_ok=True)
 
 
-def conectar():
+def conectar() -> sqlite3.Connection:
+    """Abre e retorna uma conexão com o banco SQLite com FK habilitadas."""
     conn = sqlite3.connect(CAMINHO_BANCO)
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -22,7 +42,13 @@ def conectar():
 # CRIACAO DAS TABELAS
 # ======================================================
 
-def criar_tabelas():
+def criar_tabelas() -> None:
+    """
+    Cria as tabelas do sistema caso ainda não existam.
+
+    Chamada automaticamente ao subir o servidor Django (em views.py).
+    É idempotente — pode ser chamada múltiplas vezes sem efeito colateral.
+    """
     with conectar() as conn:
 
         conn.executescript("""
@@ -61,7 +87,14 @@ def criar_tabelas():
 # ROTAS
 # ======================================================
 
-def inserir_rota(nome, descricao=""):
+def inserir_rota(nome: str, descricao: str = "") -> None:
+    """
+    Cadastra uma nova rota no banco.
+
+    Args:
+        nome: Nome único da rota (ex: "Humaitá - Centro").
+        descricao: Descrição opcional da rota.
+    """
     with conectar() as conn:
         conn.execute(
             """
@@ -73,7 +106,13 @@ def inserir_rota(nome, descricao=""):
         conn.commit()
 
 
-def listar_rotas():
+def listar_rotas() -> list:
+    """
+    Retorna todas as rotas cadastradas, ordenadas por nome.
+
+    Returns:
+        Lista de tuplas (id_rota, nome, descricao).
+    """
     with conectar() as conn:
         return conn.execute("""
             SELECT *
@@ -82,7 +121,16 @@ def listar_rotas():
         """).fetchall()
 
 
-def buscar_rota_nome(nome):
+def buscar_rota_nome(nome: str) -> int | None:
+    """
+    Busca o ID de uma rota pelo nome exato.
+
+    Args:
+        nome: Nome da rota a localizar.
+
+    Returns:
+        id_rota (int) se encontrada, None caso contrário.
+    """
     with conectar() as conn:
 
         cursor = conn.execute("""
@@ -103,7 +151,15 @@ def buscar_rota_nome(nome):
 # PASSAGEIROS
 # ======================================================
 
-def inserir_passageiro(nome, matricula, rota_id):
+def inserir_passageiro(nome: str, matricula: str, rota_id: int) -> None:
+    """
+    Cadastra um novo passageiro vinculado a uma rota.
+
+    Args:
+        nome: Nome completo do passageiro.
+        matricula: Matrícula única (usada como identificador no leitor).
+        rota_id: FK para a tabela rotas.
+    """
     with conectar() as conn:
         conn.execute("""
             INSERT INTO passageiros
@@ -115,7 +171,13 @@ def inserir_passageiro(nome, matricula, rota_id):
         conn.commit()
 
 
-def listar_passageiros():
+def listar_passageiros() -> list:
+    """
+    Retorna todos os passageiros com o nome da respectiva rota.
+
+    Returns:
+        Lista de tuplas (id_passageiro, nome, matricula, nome_rota).
+    """
     with conectar() as conn:
         return conn.execute("""
 
@@ -137,7 +199,17 @@ def listar_passageiros():
         """).fetchall()
 
 
-def buscar_passageiro_matricula(matricula):
+def buscar_passageiro_matricula(matricula: str) -> tuple | None:
+    """
+    Localiza um passageiro pela matrícula, incluindo dados da rota.
+
+    Args:
+        matricula: Matrícula a consultar.
+
+    Returns:
+        Tupla (id_passageiro, matricula, nome, rota_id, nome_rota)
+        ou None se não encontrado.
+    """
     with conectar() as conn:
         return conn.execute("""
 
@@ -163,8 +235,13 @@ def buscar_passageiro_matricula(matricula):
 # EMBARQUES
 # ======================================================
 
-def registrar_embarque(passageiro_id):
+def registrar_embarque(passageiro_id: int) -> None:
+    """
+    Registra o embarque de um passageiro com a data e hora atuais.
 
+    Args:
+        passageiro_id: PK do passageiro que está embarcando.
+    """
     agora = datetime.now()
 
     data = agora.strftime("%Y-%m-%d")
@@ -186,7 +263,13 @@ def registrar_embarque(passageiro_id):
         conn.commit()
 
 
-def listar_embarques():
+def listar_embarques() -> list:
+    """
+    Retorna todos os embarques registrados, do mais recente ao mais antigo.
+
+    Returns:
+        Lista de tuplas (nome, matricula, nome_rota, data, hora).
+    """
     with conectar() as conn:
         return conn.execute("""
 
@@ -214,8 +297,13 @@ def listar_embarques():
         """).fetchall()
 
 
-def listar_embarques_hoje():
+def listar_embarques_hoje() -> list:
+    """
+    Retorna apenas os embarques registrados no dia atual.
 
+    Returns:
+        Lista de tuplas (nome, matricula, nome_rota, hora).
+    """
     hoje = datetime.now().strftime("%Y-%m-%d")
 
     with conectar() as conn:
@@ -245,8 +333,19 @@ def listar_embarques_hoje():
         """, (hoje,)).fetchall()
 
 
-def passageiro_ja_embarcou_hoje(passageiro_id):
+def passageiro_ja_embarcou_hoje(passageiro_id: int) -> bool:
+    """
+    Verifica se o passageiro já possui embarque registrado no dia atual.
 
+    Regra de negócio: cada passageiro pode embarcar apenas uma vez por dia.
+    Para suportar ida + volta no mesmo dia basta remover essa restrição na view.
+
+    Args:
+        passageiro_id: PK do passageiro a verificar.
+
+    Returns:
+        True se já embarcou hoje, False caso contrário.
+    """
     hoje = datetime.now().strftime("%Y-%m-%d")
 
     with conectar() as conn:
@@ -266,8 +365,20 @@ def passageiro_ja_embarcou_hoje(passageiro_id):
         return cursor.fetchone()[0] > 0
 
 
-def listar_embarques_periodo(data_inicial, data_final):
+def listar_embarques_periodo(data_inicial: str, data_final: str) -> list:
+    """
+    Retorna todos os embarques dentro de um intervalo de datas.
 
+    Usado pela view de relatório para gerar o PDF com o período selecionado.
+
+    Args:
+        data_inicial: Data de início no formato 'YYYY-MM-DD'.
+        data_final:   Data de fim no formato 'YYYY-MM-DD' (inclusiva).
+
+    Returns:
+        Lista de tuplas (matricula, nome, nome_rota, data, hora),
+        ordenada por rota, data e hora.
+    """
     with conectar() as conn:
 
         cursor = conn.execute("""
@@ -304,7 +415,7 @@ def listar_embarques_periodo(data_inicial, data_final):
 # ======================================================
 
 if __name__ == "__main__":
-
+    # Execução direta: cria as tabelas e confirma no terminal.
     criar_tabelas()
 
     print("=" * 50)

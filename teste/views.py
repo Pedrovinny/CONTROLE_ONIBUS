@@ -1,3 +1,19 @@
+"""
+teste/views.py
+--------------
+Views Django do sistema de controle de embarque de ônibus.
+
+Rotas disponíveis:
+    /              → home()        — Página inicial com menu principal
+    /importar/     → importar_csv() — Upload de CSV para cadastro de passageiros
+    /leitor/       → leitor()      — Leitura de matrícula e registro de embarque
+    /relatorio/    → relatorio()   — Geração de PDF com embarques por período
+
+Dependências externas:
+    - src.banco  : funções de acesso ao SQLite
+    - reportlab  : geração de PDF para o relatório
+"""
+
 from django.shortcuts import render
 from django.http import HttpResponse
 from src.banco import *
@@ -14,18 +30,33 @@ import csv
 import io
 from datetime import datetime
 
-# Garante que as tabelas existem ao subir o servidor
-# (no projeto original isso só rodava se "python src/banco.py"
-# fosse executado manualmente antes).
+# Garante que as tabelas existem ao subir o servidor.
+# Executar aqui evita que o operador precise rodar 'python src/banco.py'
+# manualmente antes da primeira inicialização.
 criar_tabelas()
 
 
 def home(request):
+    """Renderiza a página inicial com os três cards de navegação."""
     return render(request, "home.html")
 
 
 def importar_csv(request):
+    """
+    Importa passageiros a partir de um arquivo CSV enviado pelo formulário.
 
+    GET  → exibe o formulário de upload.
+    POST → processa o arquivo CSV com as colunas: matricula, nome, rota.
+
+    Comportamento durante a importação:
+    - Se a rota ainda não existir, ela é criada automaticamente.
+    - Passageiros com matrícula já cadastrada são ignorados (sem duplicatas).
+    - Linhas com campos vazios ou colunas ausentes são contadas como erros.
+
+    Contexto passado ao template:
+        mensagem (str): Resumo de quantos passageiros foram importados
+                        e quantas linhas foram ignoradas.
+    """
     mensagem = ""
 
     if request.method == "POST":
@@ -34,7 +65,7 @@ def importar_csv(request):
 
         if arquivo:
 
-            # Le o arquivo CSV
+            # Decodifica com UTF-8-sig para remover BOM gerado por Excel
             texto = io.StringIO(
                 arquivo.read().decode("utf-8-sig")
             )
@@ -58,10 +89,9 @@ def importar_csv(request):
                     erros += 1
                     continue
 
-                # Procurar rota
+                # Busca a rota; cria se não existir ainda
                 rota_id = buscar_rota_nome(rota)
 
-                # Se nao existir, cria
                 if rota_id is None:
 
                     inserir_rota(
@@ -71,7 +101,7 @@ def importar_csv(request):
 
                     rota_id = buscar_rota_nome(rota)
 
-                # Verifica se o passageiro ja existe
+                # Só insere se o passageiro ainda não está cadastrado
                 passageiro = buscar_passageiro_matricula(matricula)
 
                 if passageiro is None:
@@ -99,7 +129,23 @@ def importar_csv(request):
 
 
 def leitor(request):
+    """
+    Tela de leitura de matrícula para registro de embarque.
 
+    GET  → exibe o formulário de entrada (campo de matrícula).
+    POST → valida a matrícula e tenta registrar o embarque.
+
+    Lógica de validação:
+    1. Matrícula não encontrada  → alerta vermelho (danger).
+    2. Passageiro já embarcou hoje → alerta amarelo (warning).
+    3. Embarque liberado          → alerta verde (success) + registra no banco.
+
+    Contexto passado ao template:
+        mensagem  (str): Texto de feedback para o operador.
+        cor       (str): Classe Bootstrap do alerta (danger/warning/success/secondary).
+        nome      (str): Nome do passageiro (preenchido apenas em caso de sucesso ou aviso).
+        rota_nome (str): Nome da rota do passageiro.
+    """
     mensagem = ""
     cor = "secondary"
     nome = ""
@@ -147,7 +193,20 @@ def leitor(request):
 
 
 def relatorio(request):
+    """
+    Gera e faz download de um relatório PDF de embarques por período.
 
+    GET  → exibe o formulário com seleção de data inicial e final.
+    POST → consulta os embarques do período e retorna um PDF inline.
+
+    Formato do PDF:
+    - Orientação paisagem (A4)
+    - Tabela com colunas: Matrícula, Nome, Rota, Data, Hora
+    - Cabeçalho azul (#0d6efd) com texto branco, linhas alternadas
+    - Rodapé com total de embarques e timestamp de geração
+
+    O arquivo é enviado como attachment com nome 'relatorio_onibus.pdf'.
+    """
     if request.method == "POST":
 
         data_inicial = request.POST["data_inicial"]

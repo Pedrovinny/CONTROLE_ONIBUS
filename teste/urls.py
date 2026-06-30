@@ -1,19 +1,16 @@
 """
-URL configuration for teste project.
+teste/urls.py
+-------------
+Mapeamento de URLs para as views do sistema de controle de embarque.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Rotas registradas:
+    /              → views.home         — Página inicial
+    /importar/     → views.importar_csv — Importação de passageiros via CSV
+    /leitor/       → views.leitor       — Leitura de matrícula e registro de embarque
+    /relatorio/    → views.relatorio    — Geração de relatório PDF por período
+    /admin/        → admin.site.urls    — Interface administrativa do Django
 """
+
 from django.contrib import admin
 from django.urls import path
 from . import views
