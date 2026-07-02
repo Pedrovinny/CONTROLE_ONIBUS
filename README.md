@@ -13,6 +13,7 @@ Sistema web de controle de embarque em ônibus desenvolvido em Django, usado pel
 - [Como Rodar](#como-rodar)
 - [Funcionalidades](#funcionalidades)
 - [Formato do CSV](#formato-do-csv)
+- [Automação de Importação (bot.py)](#automação-de-importação-botpy)
 - [Observações](#observações)
 
 ---
@@ -34,8 +35,10 @@ O sistema possui três fluxos principais:
 | Backend     | Python 3.14 + Django 6.0.6          |
 | Banco       | SQLite 3 (arquivo `dados/banco_onibus.db`) |
 | Frontend    | HTML5 + Bootstrap 5.3.8 (via CDN)   |
-| PDF         | ReportLab 5.0.0                     |
+| PDF (relatório) | ReportLab 5.0.0                 |
+| PDF (leitura) | pdfplumber (automação `bot.py`)   |
 | Imagens     | Pillow 12.2.0                       |
+| Automação   | BotCity Maestro SDK (opcional)      |
 
 ---
 
@@ -46,6 +49,11 @@ CONTROLE_ONIBUS/
 ├── manage.py               # Ponto de entrada do Django (CLI)
 ├── requirements.txt        # Dependências Python
 ├── exemplo_passageiros.csv # Exemplo de CSV para importação
+│
+├── automação/              # Bot de geração automática do CSV de importação
+│   ├── bot.py              # Lê PDFs e gera o CSV (ver seção de Automação)
+│   ├── entrada_pdfs/       # PDFs (listas de frequência do SIGAA) a processar
+│   └── saida_csv/          # CSVs gerados, prontos para /importar/
 │
 ├── dados/
 │   └── banco_onibus.db     # Banco SQLite (criado automaticamente)
@@ -171,8 +179,57 @@ Veja [exemplo_passageiros.csv](exemplo_passageiros.csv) para referência.
 
 ---
 
+## Automação de Importação (bot.py)
+
+Gerar o CSV de passageiros manualmente é trabalhoso quando os dados vêm das
+**listas de frequência do SIGAA** (PDF, uma por turma/disciplina). O script
+`automação/bot.py` automatiza essa etapa: lê todos os PDFs de uma pasta,
+extrai matrícula e nome de cada aluno e gera o CSV pronto para upload em
+`/importar/`.
+
+### Por que a rota vem como "A Definir"
+
+A lista de frequência é organizada por turma acadêmica, não por rota de
+ônibus — não existe, no PDF, nenhuma informação sobre qual parada/rota o
+aluno usa (e o mesmo aluno pode trocar de rota ao longo do tempo). Por isso
+o bot preenche a coluna `rota` de todo passageiro extraído com o valor fixo
+`"A Definir"`. A rota correta de cada aluno continua sendo atribuída
+manualmente no sistema depois da importação.
+
+### Como usar
+
+```bash
+# 1. Coloque os PDFs das listas de frequência aqui:
+automação/entrada_pdfs/
+
+# 2. Rode o bot (usa o mesmo venv do projeto):
+venv\Scripts\python.exe automação\bot.py     # Windows
+# venv/bin/python automação/bot.py           # Linux / Mac
+
+# 3. O CSV gerado aparece em:
+automação/saida_csv/passageiros_importar_<data>_<hora>.csv
+
+# 4. Faça o upload manual desse CSV em /importar/
+```
+
+O bot ignora (com aviso no console) PDFs cujo layout não corresponde ao
+esperado, e reporta um resumo ao final: quantos PDFs foram processados,
+quantos foram ignorados e o total de alunos extraídos.
+
+### Execução com BotCity Maestro (opcional)
+
+Por padrão o bot roda desconectado do BotCity Maestro. Para reportar a
+execução também no painel do Maestro, rode com os parâmetros de conexão:
+
+```bash
+python automação/bot.py --server <URL> --login <LOGIN> --key <KEY>
+```
+
+---
+
 ## Observações
 
 - **Uma viagem por dia:** a regra atual permite apenas um embarque por passageiro por dia. Para suportar ida + volta no mesmo dia como dois embarques distintos, basta remover a verificação `passageiro_ja_embarcou_hoje` na view `leitor`.
 - **Banco separado:** o arquivo `dados/banco_onibus.db` é o banco do sistema. O `db.sqlite3` na raiz é o banco padrão do Django (usado apenas para admin e sessões).
+- **Rota "A Definir":** passageiros importados via `automação/bot.py` entram com essa rota placeholder e precisam ter a rota real atribuída manualmente depois.
 - **Sem autenticação:** a aplicação não possui login. Para uso em produção, considere adicionar autenticação Django ou restringir o acesso por rede.

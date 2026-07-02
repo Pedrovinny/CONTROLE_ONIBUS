@@ -58,8 +58,12 @@ cover/
 # Django stuff:
 *.log
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
+dados/db.sqlite3
+dados/db.sqlite3-journal
+
+# Bot de importacao (dados de alunos - nao versionar)
+automação/entrada_pdfs/*.pdf
+automação/saida_csv/*.csv
 
 # Flask stuff:
 instance/

@@ -1,6 +1,8 @@
 asgiref==3.11.1
+botcity-maestro-sdk
 charset-normalizer==3.4.7
 Django==6.0.6
+pdfplumber
 pillow==12.2.0
 reportlab==5.0.0
 sqlparse==0.5.5
